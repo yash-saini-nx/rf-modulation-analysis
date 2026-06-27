@@ -113,7 +113,7 @@ with st.sidebar:
     sample_idx = st.slider("Sample #", 1, len(candidates), 1) - 1
     threshold = st.slider("Confidence threshold", 0.10, 0.95, 0.60, step=0.05)
     model_name = st.selectbox("Classifier", ["CLDNN Lite", "CNN Baseline"])
-    representation = st.radio("View", ["IQ", "Amplitude-Phase", "Spectrogram"], horizontal=False)
+    representation = st.radio("View", ["IQ", "Amplitude-Phase", "Spectrogram", "Constellation"], horizontal=False)
 
 idx = int(candidates[sample_idx])
 iq = X[idx]
@@ -151,7 +151,10 @@ else:
     pd.concat([existing, log_row], ignore_index=True).tail(200).to_csv(LOG_PATH, index=False)
 
 st.subheader("Signal Views")
-fig, ax = plt.subplots(figsize=(10, 3))
+if representation == "Constellation":
+    fig, ax = plt.subplots(figsize=(5, 5))
+else:
+    fig, ax = plt.subplots(figsize=(10, 3))
 
 if representation == "IQ":
     ax.plot(iq[:, 0], label="I")
@@ -167,6 +170,15 @@ elif representation == "Amplitude-Phase":
     ax.set_title("Amplitude and phase")
     ax.set_xlabel("Sample")
     ax.legend()
+elif representation == "Constellation":
+    ax.scatter(iq[:, 0], iq[:, 1], alpha=0.7, c='blue', edgecolors='none', s=15)
+    ax.set_title("Constellation Diagram (I vs Q)")
+    ax.set_xlabel("In-Phase (I)")
+    ax.set_ylabel("Quadrature (Q)")
+    ax.axhline(0, color='black', linewidth=0.5, alpha=0.5)
+    ax.axvline(0, color='black', linewidth=0.5, alpha=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_aspect('equal', 'box')
 else:
     f, t, power = make_spectrogram(iq)
     extent = [t[0], t[-1], f[0], f[-1]]
@@ -179,7 +191,12 @@ else:
     ax.set_ylabel("Frequency (Hz)")
     fig.colorbar(img, ax=ax, label="dB")
 
-st.pyplot(fig)
+if representation == "Constellation":
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig)
+else:
+    st.pyplot(fig)
 
 st.subheader("FFT Spectrum")
 freqs, mag = fft_spectrum(iq)
@@ -204,6 +221,21 @@ if acc_files:
     st.pyplot(fig3)
 else:
     st.info("Accuracy curves appear after training.")
+
+st.subheader("Confusion Matrices")
+st.caption("Shows how often the true modulation (rows) was predicted as another class (columns). Evaluated on the MATLAB synthetic test set.")
+cm_files = list(MODELS_DIR.glob("*_confusion_matrix.csv"))
+if cm_files:
+    cm_cols = st.columns(len(cm_files))
+    for idx, file in enumerate(cm_files):
+        with cm_cols[idx]:
+            st.write(f"**{file.stem.replace('_confusion_matrix', '').upper()}**")
+            df = pd.read_csv(file, index_col=0)
+            df_norm = df.div(df.sum(axis=1), axis=0)
+            styled = df_norm.style.background_gradient(cmap='Blues').format("{:.1%}")
+            st.dataframe(styled, use_container_width=True)
+else:
+    st.info("Confusion matrices will appear after running generate_confusion_matrices.py")
 
 st.subheader("Prediction Log")
 if LOG_PATH.exists():
