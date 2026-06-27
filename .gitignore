@@ -1,0 +1,34 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Datasets and large files (DO NOT COMMIT)
+data/*.mat
+data/*.pkl
+data/*.tar.bz2
+data/*.dat
+
+# Models
+models/*.pt
+models/*.csv
+models/*.json
+
+# Logs and databases
+*.log
+*.sqlite
+
+# IDEs
+.idea/
+.vscode/
+*.swp
