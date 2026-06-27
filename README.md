@@ -25,6 +25,16 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 
 ---
 
+## 📸 Dashboard Screenshots
+
+![Dashboard Overview](assets/dashboard_overview.png)
+*Above: The main dashboard interface showing Signal Selection, live Model Predictions, and dynamic Signal Views (like Spectrograms and Constellation diagrams).*
+
+![Dashboard Analytics](assets/dashboard_bottom.png)
+*Above: The analytical section of the dashboard showing the global Sim-to-Real Gap model comparison and real-time prediction logs.*
+
+---
+
 ##  Project Architecture
 
 ### Signal Generation (MATLAB)
