@@ -1,9 +1,4 @@
-# 📡 RF Modulation Analysis & Sim-to-Real Gap
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-ee4c2c)
-![MATLAB](https://img.shields.io/badge/MATLAB-Signal%20Processing-e16723)
-![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B)
+#  RF Modulation Analysis & Sim-to-Real Gap
 
 This project is an advanced, cross-disciplinary Machine Learning and Digital Signal Processing (DSP) system. It teaches a computer to recognize the modulation type of an RF (Radio Frequency) signal by analyzing its raw, complex-valued Time-Series I/Q data. 
 
@@ -11,7 +6,7 @@ Unlike basic ML projects, this system addresses the **Sim-to-Real Gap**—traini
 
 ---
 
-## 🎯 The Big Idea
+##  The Big Idea
 
 Modulation is how information is placed onto a carrier wave (e.g., AM changes amplitude, FM changes frequency, QAM changes both). Modern communication systems represent these RF signals internally as **IQ samples** (In-phase and Quadrature), which behave like x and y coordinates of a rotating signal point.
 
@@ -19,7 +14,7 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 
 ---
 
-## ✨ Key Features (Beyond a Basic ML Project)
+##  Key Features (Beyond a Basic ML Project)
 
 - **Multiple Deep Learning Architectures:** Compares a standard CNN baseline with a CLDNN-lite (CNN + LSTM) model to capture sequence dependencies in RF data.
 - **Sim-to-Real Gap Analysis:** Includes a Jupyter notebook that takes the model trained on synthetic MATLAB data and tests it against the real-world **RadioML 2016.10A** dataset, successfully demonstrating the accuracy drop caused by real-world channel impairments.
@@ -29,7 +24,7 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 
 ---
 
-## 📂 Project Architecture
+##  Project Architecture
 
 ### Signal Generation (MATLAB)
 - **`matlab/generate_signals.m`**: Generates 7 modulation types (AM, FM, SSB, BPSK, QPSK, QAM16, and QAM64). It adds AWGN noise at multiple SNR values (-10 dB to +20 dB) and saves the I/Q data into `data/signals.mat`.
@@ -46,7 +41,7 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 
 ---
 
-## 🚀 How To Run
+##  How To Run
 
 ### 1. Generate Signals In MATLAB
 Open MATLAB, navigate to the `matlab` folder, and run:
@@ -83,7 +78,7 @@ To see the model fail on real data:
 
 ---
 
-## 🔮 Future Extensions
+##  Future Extensions
 
 1. **Transfer Learning:** Fine-tune the MATLAB-trained model on a small portion of the RadioML dataset to close the sim-to-real gap.
 2. **Advanced Augmentation:** Add realistic channel impairments to the MATLAB script (Multipath Fading, Clock Drift, Phase Noise) to achieve Domain Randomization.
@@ -91,9 +86,6 @@ To see the model fail on real data:
 4. **Live SDR Integration:** Connect an RTL-SDR or HackRF to stream live over-the-air (OTA) radio waves directly into the Streamlit dashboard for real-time classification.
 
 ---
+## License
 
-## 📄 For Students / Resume Line
-
-If you are using this as a portfolio project, here is a professional resume bullet point:
-
-> *Designed an RF modulation analysis system using MATLAB signal generation, AWGN channel modeling, Python DSP preprocessing, PyTorch CNN and CLDNN classification, SNR regression, and a Streamlit dashboard demonstrating the sim-to-real gap for 7 modulation types.*
+This project is open-source under the [MIT License](LICENSE).
