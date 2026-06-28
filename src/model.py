@@ -6,7 +6,7 @@ from torch import nn
 
 
 class CNNBaseline(nn.Module):
-    """Simple CNN-only classifier used as the baseline model."""
+    """Deeper CNN classifier with 4 conv layers for better QAM separation."""
 
     def __init__(self, num_classes: int):
         super().__init__()
@@ -22,13 +22,19 @@ class CNNBaseline(nn.Module):
             nn.Conv1d(64, 96, kernel_size=3, padding=1),
             nn.BatchNorm1d(96),
             nn.ReLU(),
+            nn.Conv1d(96, 128, kernel_size=3, padding=1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
             nn.AdaptiveAvgPool1d(1),
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(96, 64),
+            nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            nn.Dropout(0.4),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(64, num_classes),
         )
 
@@ -39,7 +45,7 @@ class CNNBaseline(nn.Module):
 
 
 class CLDNNLite(nn.Module):
-    """CNN + LSTM classifier inspired by RF modulation CLDNN models."""
+    """CNN + LSTM classifier with residual connection and deeper LSTM."""
 
     def __init__(self, num_classes: int):
         super().__init__()
@@ -56,19 +62,31 @@ class CLDNNLite(nn.Module):
             nn.BatchNorm1d(96),
             nn.ReLU(),
         )
-        self.lstm = nn.LSTM(input_size=96, hidden_size=64, batch_first=True)
+        # Project original IQ (2 channels) to match conv output (96 channels)
+        # after downsampling by 4x (two MaxPool1d(2) layers).
+        self.residual_proj = nn.Sequential(
+            nn.Conv1d(2, 96, kernel_size=1),
+            nn.AvgPool1d(4),
+        )
+        self.lstm = nn.LSTM(
+            input_size=96, hidden_size=96,
+            num_layers=2, batch_first=True,
+            dropout=0.3,
+        )
         self.classifier = nn.Sequential(
-            nn.Linear(64, 64),
+            nn.Linear(96, 96),
             nn.ReLU(),
-            nn.Dropout(0.25),
-            nn.Linear(64, num_classes),
+            nn.Dropout(0.4),
+            nn.Linear(96, num_classes),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.transpose(1, 2)
-        x = self.conv(x)
-        x = x.transpose(1, 2)
-        _, (hidden, _) = self.lstm(x)
+        x_channels = x.transpose(1, 2)          # (B, 2, 128)
+        conv_out = self.conv(x_channels)         # (B, 96, 32)
+        residual = self.residual_proj(x_channels)  # (B, 96, 32)
+        fused = conv_out + residual              # residual connection
+        fused = fused.transpose(1, 2)            # (B, 32, 96)
+        _, (hidden, _) = self.lstm(fused)
         return self.classifier(hidden[-1])
 
 

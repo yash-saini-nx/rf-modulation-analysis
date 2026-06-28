@@ -242,3 +242,4 @@ if LOG_PATH.exists():
     st.dataframe(pd.read_csv(LOG_PATH).tail(20), use_container_width=True)
 else:
     st.info("Prediction log will appear after the first model prediction.")
+

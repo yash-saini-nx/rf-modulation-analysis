@@ -16,7 +16,9 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 
 ##  Key Features (Beyond a Basic ML Project)
 
-- **Multiple Deep Learning Architectures:** Compares a standard CNN baseline with a CLDNN-lite (CNN + LSTM) model to capture sequence dependencies in RF data.
+- **Advanced Signal Generation:** MATLAB script creates 56,000 IQ samples with built-in signal diversity (carrier jitter, amplitude fading, random symbol timing).
+- **Deep Learning Architectures:** Compares a deeper CNN baseline with a CLDNN-lite (CNN + LSTM with Residual Connections) model to capture sequence dependencies in RF data.
+- **Robust Training Pipeline:** Uses stratified train/val/test splits, dynamic learning rate schedulers, and Early Stopping based on epoch-level validation loss to prevent overfitting.
 - **Sim-to-Real Gap Analysis:** Includes a Jupyter notebook that takes the model trained on synthetic MATLAB data and tests it against the real-world **RadioML 2016.10A** dataset, successfully demonstrating the accuracy drop caused by real-world channel impairments.
 - **SNR Regression:** Alongside classification, an independent regression model predicts the Signal-to-Noise Ratio (SNR) of the incoming signal in real-time.
 - **Confidence Rejection:** Implements a dynamic confidence threshold. Instead of making bad guesses on highly noisy signals, the model will output `"unclassifiable"`.
@@ -38,13 +40,13 @@ This project uses **MATLAB** as a "signal factory" to generate clean mathematica
 ##  Project Architecture
 
 ### Signal Generation (MATLAB)
-- **`matlab/generate_signals.m`**: Generates 7 modulation types (AM, FM, SSB, BPSK, QPSK, QAM16, and QAM64). It adds AWGN noise at multiple SNR values (-10 dB to +20 dB) and saves the I/Q data into `data/signals.mat`.
+- **`matlab/generate_signals.m`**: Generates 7 modulation types (AM, FM, SSB, BPSK, QPSK, QAM16, and QAM64). It injects signal diversity (jitter, fading) and AWGN noise at SNR values from -10 dB to +20 dB, saving 56,000 I/Q samples into `data/signals.mat`.
 
 ### Deep Learning Pipeline (Python)
-- **`src/dataset.py`**: Loads the MATLAB `.mat` file, converts string labels to categorical indices, normalizes I/Q values, and builds PyTorch DataLoaders.
-- **`src/preprocess.py`**: Contains DSP helper functions. Converts I/Q to complex signals, calculates FFT spectrums, generates Spectrograms, and applies confidence rejection.
-- **`src/model.py`**: Defines three PyTorch models: a CNN baseline, a CLDNN-lite classifier, and an SNR regressor. 
-- **`src/train.py`**: Trains all three models, saving the weights and logging accuracy-vs-SNR results for comparison.
+- **`src/dataset.py`**: Loads the MATLAB `.mat` file, converts labels, normalizes I/Q values, and creates stratified train/val/test splits.
+- **`src/preprocess.py`**: Contains DSP helper functions for FFT spectrums, Spectrograms, and confidence rejection.
+- **`src/model.py`**: Defines three PyTorch models: a deep CNN baseline, a CLDNN-lite classifier with residual connections, and an SNR regressor. 
+- **`src/train.py`**: Trains the models using validation tracking, ReduceLROnPlateau scheduling, and Early Stopping, saving the best weights and accuracy logs.
 
 ### Visualization & Validation
 - **`app.py`**: The Streamlit dashboard. Allows you to select target modulations, visualize the signals in multiple DSP domains, and see the model's live predictions and logs.

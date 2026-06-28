@@ -14,7 +14,7 @@ end
 
 modTypes = {'AM', 'FM', 'SSB', 'BPSK', 'QPSK', 'QAM16', 'QAM64'};
 snrValues = -10:2:20;
-samplesPerClassPerSnr = 120;
+samplesPerClassPerSnr = 500;
 segmentLength = 128;
 sampleRate = 2000;
 carrierFreq = 200;
@@ -25,8 +25,11 @@ labels = strings(totalSamples, 1);
 snrs = zeros(totalSamples, 1);
 row = 1;
 
+fprintf('Generating %d samples...\n', totalSamples);
+
 for m = 1:numel(modTypes)
     modName = modTypes{m};
+    fprintf('  %s...\n', modName);
     for s = 1:numel(snrValues)
         snrDb = snrValues(s);
         for n = 1:samplesPerClassPerSnr
@@ -48,46 +51,60 @@ fprintf('Saved %d IQ examples to %s\n', totalSamples, outputFile);
 function x = make_modulated_signal(modName, N, fs, fc)
     t = (0:N-1) / fs;
     phaseOffset = 2 * pi * rand();
+    % Add slight carrier frequency jitter (+/- 5 Hz) for signal diversity.
+    fcJitter = fc + (rand() - 0.5) * 10;
+    % Randomize symbol timing: use 6-10 samples per symbol instead of
+    % a fixed 8, so the network cannot rely on a single timing pattern.
+    samplesPerSymbol = randi([6, 10]);
+    % Random amplitude scaling (0.7 to 1.3) for amplitude diversity.
+    ampScale = 0.7 + 0.6 * rand();
     switch modName
         case 'AM'
-            message = 0.6 * sin(2*pi*30*t + phaseOffset);
-            x = (1 + message) .* exp(1j * 2*pi*fc*t);
+            modFreq = 20 + 20*rand();
+            modDepth = 0.4 + 0.4*rand();
+            message = modDepth * sin(2*pi*modFreq*t + phaseOffset);
+            x = (1 + message) .* exp(1j * 2*pi*fcJitter*t);
         case 'FM'
-            message = sin(2*pi*25*t + phaseOffset);
-            freqDev = 80;
-            phase = 2*pi*fc*t + 2*pi*freqDev*cumsum(message)/fs;
+            modFreq = 15 + 20*rand();
+            message = sin(2*pi*modFreq*t + phaseOffset);
+            freqDev = 60 + 40*rand();
+            phase = 2*pi*fcJitter*t + 2*pi*freqDev*cumsum(message)/fs;
             x = exp(1j * phase);
         case 'SSB'
-            message = sin(2*pi*35*t + phaseOffset) + 0.5*sin(2*pi*55*t);
+            f1 = 25 + 20*rand();
+            f2 = 45 + 20*rand();
+            message = sin(2*pi*f1*t + phaseOffset) + 0.5*sin(2*pi*f2*t);
             analyticMessage = hilbert(message);
-            x = analyticMessage .* exp(1j * 2*pi*fc*t);
+            x = analyticMessage .* exp(1j * 2*pi*fcJitter*t);
         case 'BPSK'
-            bits = randi([0 1], 1, ceil(N/8));
+            bits = randi([0 1], 1, ceil(N/samplesPerSymbol));
             symbols = 2*bits - 1;
-            x = repelem(symbols, 8);
+            x = repelem(symbols, samplesPerSymbol);
             x = x(1:N) .* exp(1j * phaseOffset);
         case 'QPSK'
-            sym = randi([0 3], 1, ceil(N/8));
+            sym = randi([0 3], 1, ceil(N/samplesPerSymbol));
             constellation = exp(1j * (pi/4 + sym*pi/2));
-            x = repelem(constellation, 8);
+            x = repelem(constellation, samplesPerSymbol);
             x = x(1:N) .* exp(1j * phaseOffset);
         case 'QAM16'
-            x = make_qam_signal(16, N, phaseOffset);
+            x = make_qam_signal(16, N, phaseOffset, samplesPerSymbol);
         case 'QAM64'
-            x = make_qam_signal(64, N, phaseOffset);
+            x = make_qam_signal(64, N, phaseOffset, samplesPerSymbol);
         otherwise
             error('Unknown modulation type: %s', modName);
     end
+    x = x * ampScale;
 end
 
-function x = make_qam_signal(M, N, phaseOffset)
+function x = make_qam_signal(M, N, phaseOffset, samplesPerSymbol)
     side = sqrt(M);
     levels = -(side-1):2:(side-1);
-    i = levels(randi(numel(levels), 1, ceil(N/8)));
-    q = levels(randi(numel(levels), 1, ceil(N/8)));
+    numSymbols = ceil(N/samplesPerSymbol);
+    i = levels(randi(numel(levels), 1, numSymbols));
+    q = levels(randi(numel(levels), 1, numSymbols));
     symbols = i + 1j*q;
     symbols = symbols ./ sqrt(mean(abs(symbols).^2));
-    x = repelem(symbols, 8);
+    x = repelem(symbols, samplesPerSymbol);
     x = x(1:N) .* exp(1j * phaseOffset);
 end
 

@@ -13,10 +13,13 @@ from sklearn.preprocessing import LabelEncoder
 @dataclass
 class DatasetBundle:
     X_train: np.ndarray
+    X_val: np.ndarray
     X_test: np.ndarray
     y_train: np.ndarray
+    y_val: np.ndarray
     y_test: np.ndarray
     snr_train: np.ndarray
+    snr_val: np.ndarray
     snr_test: np.ndarray
     label_encoder: LabelEncoder
 
@@ -29,7 +32,7 @@ def load_mat_dataset(path: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarr
 
     MATLAB ``string`` arrays are saved as MCOS objects that scipy cannot decode.
     When that happens we reconstruct labels from ``modTypes`` and ``snrValues``
-    using the known generation order (mod × snr × samplesPerClassPerSnr).
+    using the known generation order (mod x snr x samplesPerClassPerSnr).
     """
     data = loadmat(path)
     X = np.asarray(data["iqData"], dtype=np.float32)
@@ -66,15 +69,38 @@ def normalize_iq(X: np.ndarray) -> np.ndarray:
     return X / np.maximum(max_abs, 1e-8)
 
 
-def prepare_dataset(path: str | Path, test_size: float = 0.2, seed: int = 42) -> DatasetBundle:
+def prepare_dataset(
+    path: str | Path,
+    test_size: float = 0.2,
+    val_size: float = 0.2,
+    seed: int = 42,
+) -> DatasetBundle:
+    """Load data and split into train / validation / test sets.
+
+    The test set is carved out first (``test_size`` of the total data).
+    Then the remaining data is split into train and validation sets
+    (``val_size`` of the remaining data).  With the defaults this gives
+    a 64 / 16 / 20 split.
+    """
     X, labels, snrs = load_mat_dataset(path)
     X = normalize_iq(X)
 
     encoder = LabelEncoder()
     y_idx = encoder.fit_transform(labels).astype(np.int64)
 
-    X_train, X_test, y_train, y_test, snr_train, snr_test = train_test_split(
+    # First split: carve out the test set.
+    X_dev, X_test, y_dev, y_test, snr_dev, snr_test = train_test_split(
         X, y_idx, snrs, test_size=test_size, random_state=seed, stratify=y_idx
     )
 
-    return DatasetBundle(X_train, X_test, y_train, y_test, snr_train, snr_test, encoder)
+    # Second split: carve out the validation set from the remaining data.
+    X_train, X_val, y_train, y_val, snr_train, snr_val = train_test_split(
+        X_dev, y_dev, snr_dev, test_size=val_size, random_state=seed, stratify=y_dev
+    )
+
+    return DatasetBundle(
+        X_train, X_val, X_test,
+        y_train, y_val, y_test,
+        snr_train, snr_val, snr_test,
+        encoder,
+    )
